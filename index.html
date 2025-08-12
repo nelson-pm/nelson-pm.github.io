@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AI Content Generator</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 100%;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: none;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-bottom: 2px solid #fff;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .generator-section {
+            display: none;
+        }
+
+        .generator-section.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+        }
+
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        .generate-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .result-image {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .style-option {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .style-option:hover,
+        .style-option.selected {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .meme-templates {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .template-option {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .template-option:hover,
+        .template-option.selected {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .tab {
+                font-size: 0.8rem;
+                padding: 12px 8px;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            .result-actions {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>🎨 AI Creator</h1>
+            <p>Generate amazing art, GIFs, and memes</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('gif')">🎬 GIFs</button>
+            <button class="tab" onclick="switchTab('meme')">😂 Memes</button>
+        </div>
+
+        <div class="content">
+            <!-- GIF Generator -->
+            <div id="gif-section" class="generator-section active">
+                <div class="input-group">
+                    <label>Describe your GIF:</label>
+                    <textarea id="gif-prompt" placeholder="A cat dancing with sunglasses in slow motion..."></textarea>
+                </div>
+
+                <button class="generate-btn" onclick="generateGif()">🎬 Create GIF</button>
+            </div>
+
+            <!-- Meme Generator -->
+            <div id="meme-section" class="generator-section">
+                <div class="input-group">
+                    <label>Choose Template:</label>
+                    <div class="meme-templates">
+                        <div class="template-option selected" data-template="drake">Drake Pointing</div>
+                        <div class="template-option" data-template="distracted">Distracted Boyfriend</div>
+                        <div class="template-option" data-template="woman-yelling">Woman Yelling at Cat</div>
+                        <div class="template-option" data-template="success">Success Kid</div>
+                        <div class="template-option" data-template="custom">Custom Image</div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Top Text:</label>
+                    <input type="text" id="meme-top" placeholder="When you...">
+                </div>
+
+                <div class="input-group">
+                    <label>Bottom Text:</label>
+                    <input type="text" id="meme-bottom" placeholder="But then...">
+                </div>
+
+                <button class="generate-btn" onclick="generateMeme()">😂 Create Meme</button>
+            </div>
+
+            <!-- Results Container -->
+            <div id="results-container" class="hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'gif';
+        let selectedTemplate = 'drake';
+        let currentResult = null;
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update sections
+            document.querySelectorAll('.generator-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(tab + '-section').classList.add('active');
+
+            currentTab = tab;
+            hideResults();
+        }
+
+        // Template selection for memes
+        document.querySelectorAll('.template-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.template-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedTemplate = this.dataset.template;
+            });
+        });
+
+        function showLoading(message) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>${message}</p>
+                </div>
+            `;
+            container.classList.remove('hidden');
+        }
+
+        function hideResults() {
+            document.getElementById('results-container').classList.add('hidden');
+        }
+
+        function showResults(type, content) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = `
+                <div class="result-container">
+                    ${content}
+                    <div class="result-actions">
+                        <button class="action-btn" onclick="downloadResult()">📱 Save to Photos</button>
+                        <button class="action-btn" onclick="shareResult()">💬 Share to iMessage</button>
+                        <button class="action-btn" onclick="regenerate()">🔄 Generate Again</button>
+                    </div>
+                </div>
+            `;
+            container.classList.remove('hidden');
+        }
+
+        async function generateArt() {
+            const prompt = document.getElementById('art-prompt').value.trim();
+            if (!prompt) {
+                alert('Please describe what you want to create!');
+                return;
+            }
+
+            showLoading('🎨 Creating your artwork...');
+
+            // Simulate AI art generation with placeholder
+            setTimeout(() => {
+                const artUrl = `https://picsum.photos/512/512?random=${Math.random()}`;
+                currentResult = {
+                    type: 'image',
+                    url: artUrl,
+                    prompt: prompt,
+                    style: selectedStyle
+                };
+
+                showResults('art', `
+                    <img src="${artUrl}" alt="Generated Art" class="result-image">
+                    <p><strong>Prompt:</strong> ${prompt}</p>
+                    <p><strong>Style:</strong> ${selectedStyle}</p>
+                `);
+            }, 3000);
+        }
+
+        async function generateGif() {
+            const prompt = document.getElementById('gif-prompt').value.trim();
+            
+            if (!prompt) {
+                alert('Please describe your GIF!');
+                return;
+            }
+
+            showLoading('🎬 Creating your GIF...');
+
+            // Simulate GIF generation
+            setTimeout(() => {
+                const gifUrl = `https://picsum.photos/400/400?random=${Math.random()}`;
+                currentResult = {
+                    type: 'gif',
+                    url: gifUrl,
+                    prompt: prompt,
+                    duration: '3'
+                };
+
+                showResults('gif', `
+                    <img src="${gifUrl}" alt="Generated GIF" class="result-image">
+                    <p><strong>Prompt:</strong> ${prompt}</p>
+                    <p><strong>Duration:</strong> 3 seconds</p>
+                    <p><em>Note: This is a demo - actual GIF would be animated</em></p>
+                `);
+            }, 4000);
+        }
+
+        async function generateMeme() {
+            const topText = document.getElementById('meme-top').value.trim();
+            const bottomText = document.getElementById('meme-bottom').value.trim();
+
+            if (!topText && !bottomText) {
+                alert('Please add some text for your meme!');
+                return;
+            }
+
+            showLoading('😂 Creating your meme...');
+
+            // Simulate meme generation
+            setTimeout(() => {
+                const memeUrl = `https://picsum.photos/500/400?random=${Math.random()}`;
+                currentResult = {
+                    type: 'meme',
+                    url: memeUrl,
+                    topText: topText,
+                    bottomText: bottomText,
+                    template: selectedTemplate
+                };
+
+                showResults('meme', `
+                    <img src="${memeUrl}" alt="Generated Meme" class="result-image">
+                    <p><strong>Template:</strong> ${selectedTemplate}</p>
+                    <p><strong>Top:</strong> ${topText || '(none)'}</p>
+                    <p><strong>Bottom:</strong> ${bottomText || '(none)'}</p>
+                `);
+            }, 2000);
+        }
+
+        function downloadResult() {
+            if (!currentResult) return;
+            
+            // Create a download link
+            const link = document.createElement('a');
+            link.href = currentResult.url;
+            link.download = `ai-${currentResult.type}-${Date.now()}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function shareResult() {
+            if (!currentResult) return;
+
+            if (navigator.share) {
+                // Use native sharing on mobile
+                navigator.share({
+                    title: `Check out my AI-generated ${currentResult.type}!`,
+                    text: `Created with AI: ${currentResult.prompt || 'Cool content'}`,
+                    url: currentResult.url
+                });
+            } else {
+                // Fallback: copy to clipboard
+                navigator.clipboard.writeText(currentResult.url).then(() => {
+                    alert('Link copied! You can now paste it in iMessage.');
+                });
+            }
+        }
+
+        function regenerate() {
+            switch(currentTab) {
+                case 'gif':
+                    generateGif();
+                    break;
+                case 'meme':
+                    generateMeme();
+                    break;
+            }
+        }
+
+        // Install prompt for PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            deferredPrompt = e;
+            e.preventDefault();
+            
+            // Show install button after a delay
+            setTimeout(() => {
+                const installBtn = document.createElement('button');
+                installBtn.textContent = '📱 Add to Home Screen';
+                installBtn.className = 'action-btn';
+                installBtn.style.position = 'fixed';
+                installBtn.style.bottom = '20px';
+                installBtn.style.right = '20px';
+                installBtn.style.zIndex = '1000';
+                
+                installBtn.addEventListener('click', () => {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(() => {
+                        deferredPrompt = null;
+                        installBtn.remove();
+                    });
+                });
+                
+                document.body.appendChild(installBtn);
+            }, 5000);
+        });
+
+        // Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+</html>
